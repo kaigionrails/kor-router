@@ -1,0 +1,74 @@
+<% primary_host = ENV.fetch('PRIMARY_HOST', 'kor-router.herokuapp.com') %>
+
+daemon off;
+#Heroku dynos have 4 cores.
+worker_processes 4;
+
+events {
+  use epoll;
+  accept_mutex on;
+  worker_connections 1024;
+}
+
+http {
+  gzip on;
+  gzip_comp_level 2;
+  gzip_min_length 512;
+
+  log_format l2met 'measure#nginx.service=$request_time request_id=$http_x_request_id '
+    '$http_x_forwarded_for - $remote_user [$time_local] '
+    '"$request" $status $bytes_sent '
+    '"$http_referer" "$http_user_agent" "$gzip_ratio"';
+
+  log_format csp_report 'measure#nginx.service=$request_time request_id=$http_x_request_id xff=$http_x_forwarded_for referer="$http_referer" ua="$http_user_agent" csp.report=$request_body';
+  map $status $csp_loggable {
+      "200"  1;
+      default 0;
+  }
+  map $content_type $csp_bad_content_type {
+      default 1;
+      "application/json" 0;
+      "application/csp-report" 0;
+  }
+
+  access_log logs/nginx/access.log l2met;
+  error_log logs/nginx/access.log;
+
+  include mime.types;
+  default_type application/octet-stream;
+  sendfile on;
+
+  #Must read the body in 5 seconds.
+  client_body_timeout 5;
+
+  port_in_redirect off;
+
+  proxy_ssl_server_name on;
+
+  rewrite_log <%= ENV.fetch("REWRITE_LOG", 'on') %>;
+
+  server {
+    listen <%= ENV["PORT"] %>;
+    server_name <%= primary_host %>;
+
+    set $csp_policy "";
+    if ($http_x_forwarded_proto = "https") {
+      set $csp_policy "default-src https: 'self' 'unsafe-inline' 'unsafe-eval'; report-uri https://<%= primary_host %>/_csp";
+    }
+    add_header Content-Security-Policy-Report-Only "$csp_policy";
+
+
+    location ~ ^/2020(.*) {
+      proxy_pass https://example.com;
+    }
+
+    location ~ ^/2021(.*) {
+      proxy_pass https://example.org;
+    }
+
+    # current event
+    location = / {
+        return 302 https://<%= primary_host %>/2021;
+    }
+  }
+}
