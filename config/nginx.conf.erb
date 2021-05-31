@@ -59,6 +59,7 @@ http {
 
 
     location ~ ^/2020(.*) {
+      include force_https.conf;
       proxy_pass https://past.kaigionrails.org;
     }
 
