@@ -57,6 +57,27 @@ http {
     }
     add_header Content-Security-Policy-Report-Only "$csp_policy";
 
+    location = /_200 {
+      access_log off;
+      return 200;
+    }
+
+    location = /_csp {
+      if ($request_method != "POST") {
+          return 405;
+      }
+
+      if ($csp_bad_content_type) {
+          return 415;
+      }
+
+      access_log logs/nginx/access.log csp_report;
+
+      # To enable $request_body
+      proxy_set_header Host localhost;
+      proxy_pass http://localhost:<%= ENV["PORT"] %>/_200;
+    }
+
 
     location ~ ^/2020(.*) {
       include force_https.conf;
