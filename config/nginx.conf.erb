@@ -53,7 +53,7 @@ http {
 
     set $csp_policy "";
     if ($http_x_forwarded_proto = "https") {
-      set $csp_policy "default-src https: 'self' 'unsafe-inline' 'unsafe-eval'; report-uri https://<%= primary_host %>/_csp";
+      set $csp_policy "default-src https: 'self' 'unsafe-inline' 'unsafe-eval'; font-src fonts.gstatic.com data:; report-uri https://<%= primary_host %>/_csp";
     }
     add_header Content-Security-Policy-Report-Only "$csp_policy";
 
