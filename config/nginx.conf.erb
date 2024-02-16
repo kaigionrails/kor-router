@@ -96,12 +96,17 @@ http {
 
     location ~ ^/2023(.*) {
       include force_https.conf;
-      proxy_pass https://2023.kaigionrails.org;
+      proxy_pass https://past.kaigionrails.org;
+    }
+
+    location ~ ^/2024(.*) {
+      include force_https.conf;
+      proxy_pass https://2024.kaigionrails.org;
     }
 
     # current event
     location = / {
-        return 302 https://<%= primary_host %>/2023;
+        return 302 https://<%= primary_host %>/2024;
     }
   }
 }
